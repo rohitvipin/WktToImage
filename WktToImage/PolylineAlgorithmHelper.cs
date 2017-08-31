@@ -94,6 +94,38 @@ namespace WktToImage
             return encodedStaticMapUrl;
         }
 
+        public static string EncodedStaticMapUrl(PositionEntity center, List<string> wktList)
+        {
+            if (wktList?.Count >= 0 != true)
+            {
+                return PointMap(center);
+            }
+
+            var encodedMultiPolyline = new StringBuilder();
+            foreach (var wkt in wktList)
+            {
+                var enumerable = PolygonHelper.GetPolygonsPositionsFromWkt(wkt)
+                        ?.Select(x => x.Coordinates.Select(y => new PositionEntity
+                        {
+                            Latitude = y.Latitude,
+                            Longitude = y.Longitude
+                        }));
+                if (enumerable == null)
+                {
+                    return PointMap(center);
+                }
+
+                foreach (var polygon in enumerable)
+                {
+                    var encodePolyLine = Encode(polygon);
+                    encodedMultiPolyline.Append($"&path=fillcolor:0xAA000033%7Ccolor:0xFFFFFF00%7Cenc:{encodePolyLine}");
+                }
+            }
+
+            var encodedStaticMapUrl = $"{GoogleMapsDomainUrl}/maps/api/staticmap?size=800x120&scale=2{encodedMultiPolyline}";
+            return encodedStaticMapUrl;
+        }
+
         private static string PointMap(PositionEntity center) => center == null ? "" : $"{GoogleMapsDomainUrl}/maps/api/staticmap?size=800x120&scale=2&center={center?.Latitude},{center?.Longitude}&zoom=9&markers=label:S%7C{center?.Latitude},{center?.Longitude}";
 
         public static string StaticMapUrl(PositionEntity center, string wkt)
